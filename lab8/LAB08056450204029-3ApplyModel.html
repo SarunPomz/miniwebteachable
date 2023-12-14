@@ -129,6 +129,7 @@
             const prediction = await model.predict(webcam.canvas);
             const maskProbability = prediction.find((result) => result.className === "Mask").probability;
             if (maskProbability > 0.8 && !hasOpenedWebsite) {
+                window.alert("คุณใส่แมสเรียบร้อย !!!");
                 window.open("https://www.rmutp.ac.th/", "_blank");
                 hasOpenedWebsite = true;
             }
