@@ -1,0 +1,144 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAB</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: url('Background-Online-meeting2.jpg') no-repeat center center fixed;
+            background-size: cover;
+            
+        }
+        #webcam-container {
+            margin-top: 20px;
+        }
+        button {
+            margin-top: 10px;
+            transition: background-color 0.2s ease-in-out;
+            background-color: #BA55D3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        button:hover {
+            background-color: white;
+            color: #BA55D3;
+            border-radius: 8px;
+        }
+        #train-link {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            color: black;
+            text-decoration: none;
+            transition: color 0.2s ease-in-out;
+        }
+        #train-link:hover {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center;">
+        <div style="border: 2px solid #BA55D3; padding: 10px; font-size: 1.5em; color: #BA55D3; display: inline-block;">
+            Teachable Machine Image Model
+        </div>
+        <br>
+    <div id="webcam-container"></div>
+    <button type="button" onclick="toggleWebcam()">Start</button>
+    <button type="button" onclick="stopWebcam()" style="display:none;">Stop</button>
+    <div id="label-container"></div>
+    <a id="train-link" href="https://teachablemachine.withgoogle.com/" target="_blank">
+        Train Ai from Teachable Machine
+    </a>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+        const URL = "./my_model/";
+        let model, webcam, labelContainer, maxPredictions;
+        let isWebcamActive = false;
+        let hasOpenedWebsite = false;
+
+        async function toggleWebcam() {
+            if (isWebcamActive) {
+                stopWebcam();
+                isWebcamActive = false;
+            } else {
+                await startWebcam();
+                isWebcamActive = true;
+            }
+        }
+
+        async function startWebcam() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            const flip = true;
+            webcam = new tmImage.Webcam(400, 400, flip);
+            await webcam.setup();
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.appendChild(document.createElement("div"));
+            }
+            document.querySelector('button[type="button"][onclick="toggleWebcam()"]').style.display = "none";
+            document.querySelector('button[type="button"][onclick="stopWebcam()"]').style.display = "inline-block";
+            isWebcamActive = true;
+            window.alert("โปรดใส่แมสเพื่อเข้าหน้าเว็บ RMUTP");
+            clearLabelContainer();
+        }
+
+        function stopWebcam() {
+            webcam.stop();
+            document.getElementById("webcam-container").innerHTML = "";
+            document.querySelector('button[type="button"][onclick="toggleWebcam()"]').style.display = "inline-block";
+            document.querySelector('button[type="button"][onclick="stopWebcam()"]').style.display = "none";
+            isWebcamActive = false;
+            hasOpenedWebsite = false;
+            clearLabelContainer();
+        }
+
+        async function loop() {
+            if (isWebcamActive) {
+                webcam.update();
+                await predict();
+                window.requestAnimationFrame(loop);
+            }
+        }
+        function clearLabelContainer(){
+            for (let i = 0; i < maxPredictions; i++){
+                labelContainer.childNodes[i].innerHTML = "";
+            }
+        }
+
+        async function predict() {
+            const prediction = await model.predict(webcam.canvas);
+            const maskProbability = prediction.find((result) => result.className === "Mask").probability;
+            if (maskProbability > 0.8 && !hasOpenedWebsite) {
+                window.open("https://www.rmutp.ac.th/", "_blank");
+                hasOpenedWebsite = true;
+            }
+             for (let i = 0; i < maxPredictions; i++) {
+            const classPrediction = prediction[i].className;
+            const probability = prediction[i].probability.toFixed(2);
+            labelContainer.childNodes[i].innerHTML = `${classPrediction}: ${probability}`;
+            labelContainer.className = classPrediction.toLowerCase();
+        }
+    }
+    </script>
+</body>
+</html>
